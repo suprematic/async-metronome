@@ -1,0 +1,23 @@
+[package]
+name = "async-metronome"
+version = "0.1.0"
+authors = ["Alexey Aristov <aav@acm.org>"]
+edition = "2018"
+license = "Apache-2.0/MIT"
+repository = "https://github.com/suprematic/async-metronome"
+documentation = "https://docs.rs/async-metronome"
+description = "Unit testing framework for async Rust"
+keywords = ["test", "tests", "unit", "assert", "task", "future", "future", "async"]
+categories = ["development-tools", "development-tools::testing", "async"]
+readme = "README.md"
+
+[dependencies]
+pin-project = "0.4"
+derive_builder = "0.9"
+async-std = "1.6"
+futures = "0.3"
+log = "0.4"
+
+[dev-dependencies]
+async-std = {version = "1.6", features = ["attributes"]}
+
