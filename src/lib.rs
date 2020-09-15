@@ -7,7 +7,7 @@ use std::task::{Context, Poll, Waker};
 use std::time::Duration;
 
 use async_std::task::{self, sleep, TaskId};
-use futures::{future::poll_fn, task::AtomicWaker, Future};
+use futures::{future::poll_fn, Future};
 
 use derive_builder::Builder;
 use pin_project::pin_project;
@@ -21,7 +21,7 @@ enum TaskState {
 
 struct TaskEntry {
     state: TaskState,
-    waker: AtomicWaker,
+    waker: Option<Waker>,
 }
 
 #[derive(Default, Builder, Debug)]
@@ -64,7 +64,7 @@ impl TestContext {
 
         let entry = TaskEntry {
             state: TaskState::Spawned,
-            waker: AtomicWaker::new(),
+            waker: Option::None,
         };
         self.tasks.insert(task_id, entry);
     }
@@ -106,29 +106,21 @@ impl TestContext {
     }
 
     fn has_waiting_for_tick(&self) -> bool {
-        self.tasks.values().any(|entry| match entry.waker.take() {
-            Some(waker) => {
-                entry.waker.register(&waker);
-                true
-            }
-            None => false,
-        })
+        self.tasks.values().any(|entry| entry.waker.is_some())
     }
 
     fn next_tick(&mut self) {
         self.tick += 1;
 
-        for entry in self.tasks.values() {
-            entry.waker.wake();
+        for entry in self.tasks.values_mut() {
+            if let Some(waker) = entry.waker.take() {
+                waker.wake();
+            }
         }
     }
 
     fn register_waker(&mut self, task_id: TaskId, waker: &Waker) {
-        self.tasks
-            .get(&task_id)
-            .expect("no task entry")
-            .waker
-            .register(waker);
+        self.tasks.get_mut(&task_id).expect("no task entry").waker = Some(waker.clone());
     }
 }
 
