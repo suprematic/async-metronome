@@ -129,14 +129,14 @@ thread_local! {
 }
 
 #[doc(hidden)]
-pub fn get_tick() -> usize {
+pub fn __private_get_tick() -> usize {
     CONTEXT.with(|state| state.borrow().as_ref().unwrap().lock().unwrap().tick)
 }
 
 #[macro_export]
 macro_rules! assert_tick {
     ($expected:expr) => {
-        let actual = async_metronome::get_tick();
+        let actual = $crate::__private_get_tick();
         assert!(
             actual == $expected,
             "tick mismatch: expected={}, actual={}",
@@ -147,7 +147,7 @@ macro_rules! assert_tick {
 }
 
 #[doc(hidden)]
-pub fn wait_tick(tick: usize) -> impl Future<Output = usize> {
+pub fn __private_wait_tick(tick: usize) -> impl Future<Output = usize> {
     let task_id = task::current().id();
 
     log::trace!("{:?} ** tick_wait / wait", task_id);
@@ -179,7 +179,7 @@ pub fn wait_tick(tick: usize) -> impl Future<Output = usize> {
 #[macro_export]
 macro_rules! await_tick {
     ($tick:expr) => {
-        async_metronome::wait_tick($tick as usize).await
+        $crate::__private_wait_tick($tick as usize).await
     };
 }
 
