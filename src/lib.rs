@@ -272,6 +272,12 @@ pub struct JoinHandleWrapper<T> {
     handle: JoinHandle<T>,
 }
 
+impl<T> JoinHandleWrapper<T> {
+    pub fn task(&self) -> &task::Task {
+        self.handle.task()
+    }
+}
+
 impl<T> Future for JoinHandleWrapper<T> {
     type Output = T;
 
