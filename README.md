@@ -5,6 +5,26 @@
  </strong>
 </div>
 
+<br />
+
+<div align="center">
+  <!-- Crates version -->
+  <a href="https://crates.io/crates/async-metronome">
+    <img src="https://img.shields.io/crates/v/async-metronome.svg?style=flat-square"
+    alt="Crates.io version" />
+  </a>
+  <!-- Downloads -->
+  <a href="https://crates.io/crates/async-metronome">
+    <img src="https://img.shields.io/crates/d/async-metronome.svg?style=flat-square"
+      alt="Download" />
+  </a>
+  <!-- docs.rs docs -->
+  <a href="https://docs.rs/async-metronome">
+    <img src="https://img.shields.io/badge/docs-latest-blue.svg?style=flat-square"
+      alt="docs.rs docs" />
+  </a>
+</div>
+
 <br/>
 
 This crate implements a async unit testing framework, which is based on the  **MutithreadedTC** developed by William Pugh and Nathaniel Ayewah at the University of Maryland.
