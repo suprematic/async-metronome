@@ -20,6 +20,7 @@ enum TaskState {
     Ready,
 }
 
+#[derive(Debug, Clone)]
 struct TaskEntry {
     state: TaskState,
     waker: Option<Waker>,
@@ -346,4 +347,117 @@ where
     T: Future<Output = O> + Send + 'static,
 {
     run_opt(test, Options::default())
+}
+
+#[cfg(test)]
+mod tests {
+    use async_std::task;
+
+    macro_rules! promote_await_panic {
+        ($e:expr) => {{
+            use futures::future::FutureExt;
+            match $e.catch_unwind().await {
+                Ok(result) => result,
+                Err(_) => panic!("future completed with panic"),
+            }
+        }};
+    }
+
+    // no context if task was not spawned with start / run
+    #[async_std::test]
+    async fn test_no_context() {
+        let task = async {
+            let task1 = async {
+                super::CONTEXT.with(|cell| {
+                    assert!(cell.borrow().is_none());
+                });
+            };
+            promote_await_panic!(task::spawn(task1));
+
+            super::CONTEXT.with(|cell| {
+                assert!(cell.borrow().is_none());
+            });
+        };
+
+        promote_await_panic!(task::spawn(task));
+    }
+
+    // context is set if spawned with start / run
+    #[async_std::test]
+    async fn test_has_context() {
+        let task = async {
+            let task1 = async {
+                super::CONTEXT.with(|cell| {
+                    assert!(cell.borrow().is_some());
+                });
+            };
+            promote_await_panic!(super::spawn(task1));
+
+            super::CONTEXT.with(|cell| {
+                assert!(cell.borrow().is_some());
+            });
+        };
+
+        promote_await_panic!(super::run(task));
+    }
+
+    #[async_std::test]
+    async fn test_initial_ticks_0() {
+        let task = async {
+            assert_tick!(0);
+        };
+
+        promote_await_panic!(super::run(task));
+    }
+
+    #[async_std::test]
+    async fn test_ticks_increment_on_wait() {
+        let task = async {
+            await_tick!(1);
+            assert_tick!(1);
+        };
+
+        promote_await_panic!(super::run(task));
+    }
+
+    fn get_task_entry(task_id: &task::TaskId) -> Option<super::TaskEntry> {
+        super::CONTEXT.with(move |cell| {
+            cell.borrow()
+                .as_ref()
+                .unwrap()
+                .lock()
+                .unwrap()
+                .tasks
+                .get(task_id)
+                .map(|e| e.clone())
+                .clone()
+        })
+    }
+
+    #[async_std::test]
+    async fn test_task_states() {
+        let task = async {
+            let task_id = task::current().id();
+            let task_entry = get_task_entry(&task_id);
+            assert!(task_entry.is_some());
+
+            let task_entry = task_entry.unwrap();
+
+            assert_eq!(task_entry.state, super::TaskState::Running);
+            assert!(!task_entry.detached);
+            assert!(task_entry.waker.is_none());
+        };
+
+        let jh = super::run(task);
+        let task_id = jh.task().id();
+
+        let task_entry = get_task_entry(&task_id);
+        assert!(task_entry.is_some());
+        let task_entry = task_entry.unwrap();
+        assert!(!task_entry.detached);
+
+        let _ = promote_await_panic!(jh);
+        let task_entry = get_task_entry(&task_id);
+        assert!(task_entry.is_none());
+    }
 }
