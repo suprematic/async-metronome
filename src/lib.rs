@@ -334,7 +334,12 @@ where
     CONTEXT.with(move |cell| {
         let context = Arc::new(Mutex::new(TestContext::new(options)));
 
-        cell.replace(Some(context));
+        if cell.borrow().is_none() {
+            cell.replace(Some(context));
+        } else {
+            panic!("test context already created");
+        }
+
         spawn(test)
     })
 }
