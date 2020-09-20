@@ -266,7 +266,7 @@ impl<T: Future> Future for TaskWrapper<T> {
 #[pin_project(PinnedDrop)]
 pub struct JoinHandleWrapper<T> {
     task_id: task::TaskId,
-    context: WrappedTestContext,
+    context: Option<WrappedTestContext>,
 
     #[pin]
     handle: JoinHandle<T>,
@@ -289,7 +289,14 @@ impl<T> Future for JoinHandleWrapper<T> {
 #[pinned_drop]
 impl<T> PinnedDrop for JoinHandleWrapper<T> {
     fn drop(self: Pin<&mut Self>) {
-        self.context.lock().unwrap().detached(&self.task_id);
+        if self.context.is_some() {
+            self.context
+                .as_ref()
+                .unwrap()
+                .lock()
+                .unwrap()
+                .detached(&self.task_id);
+        }
     }
 }
 
@@ -302,25 +309,32 @@ where
 {
     CONTEXT.with(move |cell| {
         let cell = cell.borrow();
-        let context = cell.as_ref().expect("nocontext");
 
-        let mut locked = context.lock().unwrap();
+        if cell.as_ref().is_some() {
+            let context = cell.as_ref().unwrap();
 
-        let wrapped = TaskWrapper {
-            task,
-            context: context.clone(),
-        };
+            let mut locked = context.lock().unwrap();
+            let wrapped = TaskWrapper {
+                task,
+                context: context.clone(),
+            };
+            let handle = task::spawn(wrapped);
+            let task_id = handle.task().id();
+            locked.spawned(task_id);
+            JoinHandleWrapper {
+                task_id,
+                handle,
+                context: Some(context.clone()),
+            }
+        } else {
+            let handle = task::spawn(task);
+            let task_id = handle.task().id();
 
-        let handle = task::spawn(wrapped);
-
-        let task_id = handle.task().id();
-
-        locked.spawned(task_id);
-
-        JoinHandleWrapper {
-            task_id,
-            handle,
-            context: context.clone(),
+            JoinHandleWrapper {
+                task_id,
+                handle,
+                context: None,
+            }
         }
     })
 }
@@ -384,6 +398,17 @@ mod tests {
         };
 
         promote_await_panic!(task::spawn(task));
+    }
+
+    #[async_std::test]
+    async fn test_spawn_no_context() {
+        let task = async {
+            super::CONTEXT.with(|cell| {
+                assert!(cell.borrow().is_none());
+            });
+        };
+
+        promote_await_panic!(super::spawn(task));
     }
 
     // context is set if spawned with start / run
