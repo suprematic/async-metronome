@@ -6,22 +6,24 @@ use std::sync::{Arc, Mutex};
 use std::task::{Context, Poll, Waker};
 use std::time::Duration;
 
-use async_std::task::{self, sleep, TaskId};
+use async_std::task::{self, sleep, JoinHandle, TaskId};
 use futures::{future::poll_fn, Future};
 
 use derive_builder::Builder;
-use pin_project::pin_project;
+use pin_project::{pin_project, pinned_drop};
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 enum TaskState {
     Spawned,
     Running,
     Pending,
+    Ready,
 }
 
 struct TaskEntry {
     state: TaskState,
     waker: Option<Waker>,
+    detached: bool,
 }
 
 #[derive(Default, Builder, Debug)]
@@ -65,6 +67,7 @@ impl TestContext {
         let entry = TaskEntry {
             state: TaskState::Spawned,
             waker: Option::None,
+            detached: false,
         };
         self.tasks.insert(task_id, entry);
     }
@@ -74,9 +77,30 @@ impl TestContext {
         self.set_state(task_id, TaskState::Running);
     }
 
+    // future is ready
     fn ready(&mut self, task_id: &TaskId) {
         log::trace!("{:?} -> Ready", task_id);
-        self.tasks.remove(&task_id);
+
+        if let Some(entry) = self.tasks.get_mut(task_id) {
+            if entry.detached {
+                self.tasks.remove(&task_id);
+            } else {
+                entry.state = TaskState::Ready;
+            }
+        }
+    }
+
+    // JoinHandle detached
+    fn detached(&mut self, task_id: &TaskId) {
+        log::trace!("{:?} ** Detach", task_id);
+
+        if let Some(entry) = self.tasks.get_mut(task_id) {
+            if entry.state == TaskState::Ready {
+                self.tasks.remove(&task_id);
+            } else {
+                entry.detached = true;
+            }
+        }
     }
 
     // returns true if we are in possible deadlock
@@ -239,9 +263,33 @@ impl<T: Future> Future for TaskWrapper<T> {
     }
 }
 
+#[pin_project(PinnedDrop)]
+pub struct JoinHandleWrapper<T> {
+    task_id: task::TaskId,
+    context: WrappedTestContext,
+
+    #[pin]
+    handle: JoinHandle<T>,
+}
+
+impl<T> Future for JoinHandleWrapper<T> {
+    type Output = T;
+
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        self.project().handle.poll(cx)
+    }
+}
+
+#[pinned_drop]
+impl<T> PinnedDrop for JoinHandleWrapper<T> {
+    fn drop(self: Pin<&mut Self>) {
+        self.context.lock().unwrap().detached(&self.task_id);
+    }
+}
+
 // instrument task and spawn it. Will panic if executed outside of
 // already intstrumented task.
-pub fn spawn<T, O>(task: T) -> task::JoinHandle<O>
+pub fn spawn<T, O>(task: T) -> JoinHandleWrapper<O>
 where
     O: Send + 'static,
     T: Future<Output = O> + Send + 'static,
@@ -259,14 +307,20 @@ where
 
         let handle = task::spawn(wrapped);
 
-        locked.spawned(handle.task().id());
+        let task_id = handle.task().id();
 
-        handle
+        locked.spawned(task_id);
+
+        JoinHandleWrapper {
+            task_id,
+            handle,
+            context: context.clone(),
+        }
     })
 }
 
 // run test case
-pub fn run_opt<T, O>(test: T, options: Options) -> task::JoinHandle<O>
+pub fn run_opt<T, O>(test: T, options: Options) -> JoinHandleWrapper<O>
 where
     O: Send + 'static,
     T: Future<Output = O> + Send + 'static,
@@ -280,7 +334,7 @@ where
 }
 
 // run test case with default options
-pub fn run<T, O>(test: T) -> task::JoinHandle<O>
+pub fn run<T, O>(test: T) -> JoinHandleWrapper<O>
 where
     O: Send + 'static,
     T: Future<Output = O> + Send + 'static,
