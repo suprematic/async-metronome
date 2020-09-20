@@ -6,7 +6,7 @@ edition = "2018"
 license = "Apache-2.0/MIT"
 repository = "https://github.com/suprematic/async-metronome"
 description = "Unit testing framework for async Rust"
-keywords = ["test", "tests", "unit", "assert", "task", "future", "future", "async"]
+keywords = ["tests", "unit", "assert", "futures", "async"]
 categories = ["development-tools", "development-tools::testing", "async"]
 readme = "README.md"
 
