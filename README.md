@@ -27,31 +27,32 @@ To avoid copying original documentation here, please check [MultithreadedTC](htt
 use async_metronome::{assert_tick, await_tick};
 
 async fn test_send_receive() {
-    let (mut sender, mut receiver) = mpsc::channel::<usize>(1);
+    let test = async {
+        let (mut sender, mut receiver) = mpsc::channel::<usize>(1);
 
-    let sender = async move {
-        sender.send(42).await;
-        sender.send(17).await;
-        assert_tick!(1);
+        let sender = async move {
+            assert_tick!(0);
+            sender.send(42).await.unwrap();
+            sender.send(17).await.unwrap();
+            assert_tick!(1);
+        };
+        let receiver = async move {
+            assert_tick!(0);
+            await_tick!(1);
+            receiver.next().await;
+            receiver.next().await;
+        };
+        
+        let sender = async_metronome::spawn(sender);
+        let receiver = async_metronome::spawn(receiver);
+
+        sender.await;
+        receiver.await;
     };
 
-    let receiver = async move {
-        await_tick!(1);
-        receiver.next().await;
-        receiver.next().await;
-    };
-
-    let sender = async_metronome::spawn(sender);
-    let receiver = async_metronome::spawn(receiver);
-
-    sender.await;
-    receiver.await;
+    async_metronome::run(test).await;
 }
 
-#[async_std::test]
-async fn test() {
-    async_metronome::run(test_send_receive()).await;
-}
 ```
 ## Explanation (adapted from the MutithreadedTC)
 
@@ -61,7 +62,7 @@ The clock starts at `tick 0`. In this example, the macro `await_tick!(1)` makes 
 
 In `tick 1`, the statement `receiver.next(42)` in the receiver is executed, and this frees up sender. The final statement in sender asserts that the clock is in `tick 1`, in effect asserting that the task blocked on the call to `sender.send(17)`.
 
-Complete example, can be found in the [examples](examples/) directory.
+Complete example, can be found in the [tests/send_receive.rs](tests/send_receive.rs).
 
 ## Installation
 ```sh
