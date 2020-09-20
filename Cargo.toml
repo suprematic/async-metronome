@@ -5,7 +5,6 @@ authors = ["Alexey Aristov <aav@acm.org>"]
 edition = "2018"
 license = "Apache-2.0/MIT"
 repository = "https://github.com/suprematic/async-metronome"
-documentation = "https://docs.rs/async-metronome"
 description = "Unit testing framework for async Rust"
 keywords = ["test", "tests", "unit", "assert", "task", "future", "future", "async"]
 categories = ["development-tools", "development-tools::testing", "async"]
