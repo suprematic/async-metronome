@@ -1,13 +1,13 @@
 [package]
 name = "async-metronome"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Alexey Aristov <aav@acm.org>"]
 edition = "2018"
 license = "Apache-2.0/MIT"
 repository = "https://github.com/suprematic/async-metronome"
 description = "Unit testing framework for async Rust"
 keywords = ["tests", "unit", "assert", "futures", "async"]
-categories = ["development-tools", "development-tools::testing", "async"]
+categories = ["development-tools", "development-tools::testing", "asynchronous", "concurrency"]
 readme = "README.md"
 
 [dependencies]
