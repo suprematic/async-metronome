@@ -1,3 +1,57 @@
+//! ## Unit testing framework for async Rust
+//!
+//! This crate implements a async unit testing framework, which is based on
+//! the [MutithreadedTC](https://www.cs.umd.edu/projects/PL/multithreadedtc/overview.html)
+//! developed by William Pugh and Nathaniel Ayewah at the University of Maryland.
+//!
+//! ## Example
+//!
+//! ```
+//! use futures::{channel::mpsc, SinkExt, StreamExt};
+//! use async_metronome::{assert_tick, await_tick};
+//!
+//! async fn test_send_receive() {
+//!     let (mut sender, mut receiver) = mpsc::channel::<usize>(1);
+//!
+//!     let sender = async move {
+//!         sender.send(42).await;
+//!         sender.send(17).await;
+//!         assert_tick!(1);
+//!     };
+//!
+//!     let receiver = async move {
+//!         await_tick!(1);
+//!         receiver.next().await;
+//!         receiver.next().await;
+//!     };
+//!
+//!     let sender = async_metronome::spawn(sender);
+//!     let receiver = async_metronome::spawn(receiver);
+//!
+//!     sender.await;
+//!     receiver.await;
+//! }
+//!
+//! #[async_std::test]
+//! async fn test() {
+//!     async_metronome::run(test_send_receive()).await;
+//! }
+//! ```
+//!
+//! ## Explanation
+//! async-metronome has an internal clock. The clock only advances to the next
+//! tick when all tasks are in a pending state.
+//!
+//! The clock starts at `tick 0`. In this example, the macro `await_tick!(1)` makes
+//! the receiver block until the clock reaches `tick 1` before resuming.
+//! Thread 1 is allowed to run freely in `tick 0`, until it blocks on
+//! the call to `sender.send(17)`. At this point, all threads are blocked, and
+//! the clock can advance to the next tick.
+//!
+//! In `tick 1`, the statement `receiver.next(42)` in the receiver is executed,
+//! and this frees up sender. The final statement in sender asserts that the
+//! clock is in `tick 1`, in effect asserting that the task blocked on the
+//! call to `sender.send(17)`.
 use std::cell::RefCell;
 use std::cmp::Ordering;
 use std::collections::HashMap;
@@ -27,6 +81,7 @@ struct TaskEntry {
     detached: bool,
 }
 
+/// Options.
 #[derive(Default, Builder, Debug)]
 pub struct Options {
     #[builder(setter(into, strip_option))]
@@ -158,6 +213,7 @@ pub fn __private_get_tick() -> usize {
 }
 
 #[macro_export]
+/// Asserts current tick counter value.
 macro_rules! assert_tick {
     ($expected:expr) => {
         let actual = $crate::__private_get_tick();
@@ -200,6 +256,11 @@ pub fn __private_wait_tick(tick: usize) -> impl Future<Output = usize> {
     })
 }
 
+/// Awaits for the tick counter reach the specified value.
+///
+/// Tick counter increments when all tasks in the test case
+/// are in 'Pending' state, and at least one of them awaits for a
+/// tick.
 #[macro_export]
 macro_rules! await_tick {
     ($tick:expr) => {
@@ -264,6 +325,11 @@ impl<T: Future> Future for TaskWrapper<T> {
 }
 
 #[pin_project(PinnedDrop)]
+/// Returned by `run`, `run_opt` and `spawn`.
+///
+/// For more details see
+/// [JoinHandle](https://docs.rs/async-std/~1.6/async_std/task/struct.JoinHandle.html)
+/// in `async_std`.
 pub struct JoinHandleWrapper<T> {
     task_id: task::TaskId,
     context: Option<WrappedTestContext>,
@@ -273,6 +339,9 @@ pub struct JoinHandleWrapper<T> {
 }
 
 impl<T> JoinHandleWrapper<T> {
+    /// Return handle for the underlying task.
+    /// For more details see [JoinHandle::task](https://docs.rs/async-std/~1.6/async_std/task/struct.JoinHandle.html#method.task)
+    /// in `async_std`.
     pub fn task(&self) -> &task::Task {
         self.handle.task()
     }
@@ -300,8 +369,9 @@ impl<T> PinnedDrop for JoinHandleWrapper<T> {
     }
 }
 
-// instrument task and spawn it. Will panic if executed outside of
-// already intstrumented task.
+/// Instruments a task and spawns it.
+///
+/// If called outside of test context, the task is spawned without instrumentation.
 pub fn spawn<T, O>(task: T) -> JoinHandleWrapper<O>
 where
     O: Send + 'static,
@@ -339,7 +409,12 @@ where
     })
 }
 
-// run test case
+/// Spawns the topmost future of the test case.
+///
+/// Internally, it creates a `test context` that is
+/// propagated to subsequestly spawned futures.
+/// # Panics
+/// Will panic if test context is already created.
 pub fn run_opt<T, O>(test: T, options: Options) -> JoinHandleWrapper<O>
 where
     O: Send + 'static,
@@ -358,7 +433,7 @@ where
     })
 }
 
-// run test case with default options
+/// Same as [run_opt](fn.run_opt.html) but with default options.
 pub fn run<T, O>(test: T) -> JoinHandleWrapper<O>
 where
     O: Send + 'static,
