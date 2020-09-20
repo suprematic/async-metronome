@@ -12,7 +12,7 @@ use futures::{future::poll_fn, Future};
 use derive_builder::Builder;
 use pin_project::pin_project;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 enum TaskState {
     Spawned,
     Running,
