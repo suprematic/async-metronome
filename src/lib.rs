@@ -31,7 +31,6 @@ struct TaskEntry {
 pub struct Options {
     #[builder(setter(into, strip_option))]
     timeout: Option<Duration>,
-    debug: bool,
 }
 
 struct TestContext {
