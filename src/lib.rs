@@ -53,7 +53,6 @@
 //! clock is in `tick 1`, in effect asserting that the task blocked on the
 //! call to `sender.send(17)`.
 use std::cell::RefCell;
-use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::pin::Pin;
 use std::sync::{Arc, Mutex};
@@ -237,20 +236,13 @@ pub fn __private_wait_tick(tick: usize) -> impl Future<Output = usize> {
             let cell = cell.borrow();
             let mut context = cell.as_ref().unwrap().lock().unwrap();
 
-            match context.tick.cmp(&tick) {
-                Ordering::Equal => {
-                    log::trace!("{:?} ** tick_wait / ready", task_id);
-                    Poll::Ready(tick)
-                }
-                Ordering::Less => {
-                    log::trace!("{:?} ** tick_wait / early", task_id);
-                    context.register_waker(task_id, cx.waker());
-
-                    Poll::Pending
-                }
-                Ordering::Greater => {
-                    panic!();
-                }
+            if context.tick >= tick {
+                log::trace!("{:?} ** tick_wait / ready", task_id);
+                Poll::Ready(tick)
+            } else {
+                log::trace!("{:?} ** tick_wait / early", task_id);
+                context.register_waker(task_id, cx.waker());
+                Poll::Pending
             }
         })
     })
