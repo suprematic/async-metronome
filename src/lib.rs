@@ -206,9 +206,19 @@ thread_local! {
     static CONTEXT: RefCell<Option<WrappedTestContext>> = RefCell::new(None);
 }
 
+static NOCONTEXT: &str = "nocontext";
+
 #[doc(hidden)]
 pub fn __private_get_tick() -> usize {
-    CONTEXT.with(|state| state.borrow().as_ref().unwrap().lock().unwrap().tick)
+    CONTEXT.with(|state| {
+        state
+            .borrow()
+            .as_ref()
+            .expect(NOCONTEXT)
+            .lock()
+            .unwrap()
+            .tick
+    })
 }
 
 #[macro_export]
@@ -234,7 +244,7 @@ pub fn __private_wait_tick(tick: usize) -> impl Future<Output = usize> {
     poll_fn(move |cx| {
         CONTEXT.with(move |cell| {
             let cell = cell.borrow();
-            let mut context = cell.as_ref().unwrap().lock().unwrap();
+            let mut context = cell.as_ref().expect(NOCONTEXT).lock().unwrap();
 
             if context.tick >= tick {
                 log::trace!("{:?} ** tick_wait / ready", task_id);
