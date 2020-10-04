@@ -11,12 +11,13 @@ categories = ["development-tools", "development-tools::testing", "asynchronous",
 readme = "README.md"
 
 [dependencies]
-pin-project = "0.4"
-derive_builder = "0.9"
-async-std = "1.6"
 futures = "0.3"
-log = "0.4"
+async-task = "4.0.2"
+flume = "0.9.1"
+pin-project = "0.4"
+threadpool = "1.8"
+derive_builder = "0.9"
 
 [dev-dependencies]
-async-std = {version = "1.6", features = ["attributes"]}
+async-std = "1.6"
 

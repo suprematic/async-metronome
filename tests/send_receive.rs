@@ -1,8 +1,8 @@
 use async_metronome::{assert_tick, await_tick};
 use futures::{channel::mpsc, SinkExt, StreamExt};
 
-#[async_std::test]
-async fn test_send_receive() {
+#[test]
+fn test_send_receive() {
     let test = async {
         let (mut sender, mut receiver) = mpsc::channel::<usize>(1);
 
@@ -24,5 +24,5 @@ async fn test_send_receive() {
         receiver.await;
     };
 
-    async_metronome::run(test).await;
+    async_metronome::run(test);
 }
