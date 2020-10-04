@@ -83,10 +83,10 @@ const HASCONTEXT: &str = "hascontext";
 /// Options.
 #[derive(Clone, Default, Builder, Debug)]
 pub struct Options {
-    #[builder(setter(into, strip_option), default = None)]
+    #[builder(setter(into, strip_option), default)]
     timeout: Option<Duration>,
 
-    #[builder(setter(into))]
+    #[builder(setter(into), default)]
     debug: bool,
 }
 
