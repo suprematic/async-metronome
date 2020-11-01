@@ -7,12 +7,11 @@
 //! ## Example
 //!
 //! ```
-//! use futures::{channel::mpsc, SinkExt, StreamExt};
+//! # use futures::{channel::mpsc, SinkExt, StreamExt};
 //! use async_metronome::{assert_tick, await_tick};
 //!
-//! #[test]
-//! fn test_send_receive() {
-//!     let test = async {
+//! #[async_metronome::test]
+//! async fn test_send_receive() {
 //!         let (mut sender, mut receiver) = mpsc::channel::<usize>(1);
 //!
 //!         let sender = async move {
@@ -30,11 +29,9 @@
 //!         };
 //!         let sender = async_metronome::spawn(sender);
 //!         let receiver = async_metronome::spawn(receiver);
+//!
 //!         sender.await;
 //!         receiver.await;
-//!     };
-
-//!     async_metronome::run(test);
 //! }
 //! ```
 //!
@@ -75,6 +72,9 @@ use derive_builder::Builder;
 use flume;
 use pin_project::pin_project;
 use threadpool::ThreadPool;
+
+/// Marks async test function.
+pub use async_metronome_attributes::test;
 
 const DEADLOCK: &str = "deadlock";
 const NOCONTEXT: &str = "nocontext";
