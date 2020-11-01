@@ -410,6 +410,12 @@ where
 mod tests {
     #[test]
     #[should_panic]
+    fn test_panic_no_context() {
+        super::spawn(async {});
+    }
+
+    #[test]
+    #[should_panic]
     fn test_root_task_exception() {
         super::run(async {
             panic!();
