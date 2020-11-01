@@ -296,8 +296,8 @@ impl<T: Future> Future for TaskWrapper<T> {
 
 /// Spawns a task
 ///
-/// Panics if used outside of the test case - either a root task started by ['run'] or
-/// one of the child tasks.
+/// Panics if called outside of the test case - either a root task started by `run` / `run_opt` or
+/// one of child tasks.
 pub fn spawn<F, O>(future: F) -> JoinHandle<O>
 where
     F: Future<Output = O> + Send + 'static,
@@ -316,7 +316,7 @@ where
 /// Will panic if the future it runs panics.
 ///
 /// Will panic if deadlock is detected. That means, all tasks are in 'pending' state
-/// and none of them is waiting for next tick ('await_tick').
+/// and none of them is waiting for next tick (`await_tick`).
 pub fn run_opt<O, F>(future: F, options: Options)
 where
     F: Future<Output = O> + Send + 'static,
