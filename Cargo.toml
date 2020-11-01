@@ -11,11 +11,11 @@ categories = ["development-tools", "development-tools::testing", "asynchronous",
 readme = "README.md"
 
 [dependencies]
-async-metronome-attributes = "0.1.0"
+async-metronome-attributes = "0.1"
 futures = "0.3"
-async-task = "4.0.2"
-flume = "0.9.1"
-pin-project = "0.4"
+async-task = "4.0"
+flume = "0.9"
+pin-project = "1.0"
 threadpool = "1.8"
 derive_builder = "0.9"
 
