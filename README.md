@@ -37,8 +37,6 @@ Concurrent applications are often not deterministic, and so are failures. Depend
 
 With **async-metronome**, it is possible to define test cases that demonstrate a fixed interleaving of threads. If concurrent abstractions under test are reasonably small, it should be feasible to create multiple test cases that will deterministically cover all relevant interleavings.
 
-The current implementation is based on [async-std](https://crates.io/crates/async-std), but in the future, it should be possible to support [tokio](https://tokio.rs) as well.
-
 To avoid copying original documentation here, please check [MultithreadedTC](https://www.cs.umd.edu/projects/PL/multithreadedtc/) web site, and the corresponding [paper](https://www.cs.umd.edu/projects/PL/multithreadedtc/pubs/ASE07-pugh.pdf).
 
 ## Example
