@@ -77,7 +77,7 @@ use threadpool::ThreadPool;
 pub use async_metronome_attributes::test;
 
 const DEADLOCK: &str = "deadlock";
-const NOCONTEXT: &str = "nocontext";
+const NOKERNEL: &str = "nokernel";
 const HASCONTEXT: &str = "hascontext";
 
 /// Options.
@@ -199,7 +199,7 @@ thread_local! {
 }
 
 fn get_context() -> WrappedTestContext {
-    CONTEXT.with(|cell| cell.borrow().as_ref().expect(NOCONTEXT).clone())
+    CONTEXT.with(|cell| cell.borrow().as_ref().expect(NOKERNEL).clone())
 }
 
 #[doc(hidden)]
@@ -292,6 +292,12 @@ impl<T: Future> Future for TaskWrapper<T> {
             }
         }
     }
+}
+
+/// Checks if context is available.
+/// To be further described later
+pub fn is_context() -> bool {
+    CONTEXT.with(|cell| cell.borrow().as_ref().is_some())
 }
 
 /// Spawns a task
