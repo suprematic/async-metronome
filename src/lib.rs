@@ -84,7 +84,7 @@ const HASCONTEXT: &str = "hascontext";
 #[derive(Clone, Default, Builder, Debug)]
 pub struct Options {
     #[builder(setter(into, strip_option), default)]
-    timeout: Option<Duration>,
+    _timeout: Option<Duration>,
 
     #[builder(setter(into), default)]
     debug: bool,
@@ -330,7 +330,7 @@ where
 {
     CONTEXT.with(|cell| {
         if cell.borrow().is_some() {
-            panic!(HASCONTEXT);
+            panic!("{}", HASCONTEXT);
         }
     });
 
@@ -395,7 +395,7 @@ where
                 }
                 continue;
             } else {
-                panic!(DEADLOCK);
+                panic!("{}", DEADLOCK);
             }
         } else {
             break;
