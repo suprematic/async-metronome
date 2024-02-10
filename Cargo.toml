@@ -18,11 +18,11 @@ readme = "README.md"
 [dependencies]
 async-metronome-attributes = "0.1"
 futures = "0.3"
-async-task = "4.0"
-flume = "0.9"
-pin-project = "1.0"
+async-task = "4.7"
+flume = "0.11"
+pin-project = "1.1"
 threadpool = "1.8"
-derive_builder = "0.9"
+derive_builder = "0.13"
 
 [dev-dependencies]
 async-std = "1.12"
