@@ -2,7 +2,7 @@
 name = "async-metronome"
 version = "0.3.0"
 authors = ["Alexey Aristov <aav@acm.org>"]
-edition = "2018"
+edition = "2021"
 license = "Apache-2.0/MIT"
 repository = "https://github.com/suprematic/async-metronome"
 description = "Unit testing framework for async Rust"
