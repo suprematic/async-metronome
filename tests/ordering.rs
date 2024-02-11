@@ -12,21 +12,21 @@ async fn test_ordering() {
     let ordering = Ordering::SeqCst;
 
     let task1 = async move {
-        ai1.compare_and_swap(0, 1, ordering);
+        ai1.compare_exchange(0, 1, ordering, ordering).unwrap();
         async_metronome::await_tick!(3);
         assert_eq!(ai1.load(ordering), 3);
     };
 
     let task2 = async move {
         async_metronome::await_tick!(1);
-        assert_eq!(ai2.compare_and_swap(1, 2, ordering), 1);
+        assert_eq!(ai2.compare_exchange(1, 2, ordering, ordering).unwrap(), 1);
         async_metronome::await_tick!(3);
         assert_eq!(ai2.load(ordering), 3);
     };
 
     let task3 = async move {
         async_metronome::await_tick!(2);
-        assert_eq!(ai3.compare_and_swap(2, 3, ordering), 2);
+        assert_eq!(ai3.compare_exchange(2, 3, ordering, ordering).unwrap(), 2);
     };
 
     let s1 = async_metronome::spawn(task1);
